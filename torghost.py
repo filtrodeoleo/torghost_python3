@@ -5,7 +5,8 @@ import os
 import sys
 import getopt
 from requests import get
-import commands
+#import commands
+import subprocess
 import time
 import signal
 from stem import Signal
@@ -35,13 +36,13 @@ def t():
 
 
 def sigint_handler(signum, frame):
-    print "User interrupt ! shutting down"
+    print ("User interrupt ! shutting down")
     stop_torghost()
 
 
 def logo():
-    print bcolors.RED + bcolors.BOLD
-    print """
+    print (bcolors.RED + bcolors.BOLD)
+    print ("""
       _____           ____ _               _
      |_   _|__  _ __ / ___| |__   ___  ___| |_
        | |/ _ \| '__| |  _| '_ \ / _ \/ __| __|
@@ -49,13 +50,13 @@ def logo():
        |_|\___/|_|   \____|_| |_|\___/|___/\__|
 	v3.0.3 - github.com/SusmithKrishnan/torghost
 
-    """
-    print bcolors.ENDC
+    """)
+    print (bcolors.ENDC)
 
 
 def usage():
     logo()
-    print """
+    print ("""
     Torghost usage:
     -s    --start       Start Torghost
     -r    --switch      Request new tor exit node
@@ -63,7 +64,7 @@ def usage():
     -h    --help        Print this help and exit
     -u    --update      check for update
 
-    """
+    """)
     sys.exit()
 
 
@@ -78,7 +79,7 @@ def ip():
 
 def check_root():
 	if os.geteuid()!=0:
- 		print "You must be root; Say the magic word 'sudo'"
+ 		print ("You must be root; Say the magic word 'sudo'")
  		sys.exit(0)
 
 signal.signal(signal.SIGINT, sigint_handler)
@@ -100,33 +101,32 @@ resolv = '/etc/resolv.conf'
 
 
 def start_torghost():
-    print t() + ' Always check for updates using -u option'
+    print ( t() + ' Always check for updates using -u option' )
     os.system('sudo cp /etc/resolv.conf /etc/resolv.conf.bak')
     if os.path.exists(Torrc) and TorrcCfgString in open(Torrc).read():
-        print t() + ' Torrc file already configured'
+        print ( t() + ' Torrc file already configured' )
     else:
 
         with open(Torrc, 'w') as myfile:
-            print t() + ' Writing torcc file '
+            print ( t() + ' Writing torcc file ' )
             myfile.write(TorrcCfgString)
-            print bcolors.GREEN + '[done]' + bcolors.ENDC
+            print ( bcolors.GREEN + '[done]' + bcolors.ENDC )
     if resolvString in open(resolv).read():
-        print t() + ' DNS resolv.conf file already configured'
+        print ( t() + ' DNS resolv.conf file already configured' )
     else:
         with open(resolv, 'w') as myfile:
-            print t() + ' Configuring DNS resolv.conf file.. ',
-            myfile.write(resolvString)
-            print bcolors.GREEN + '[done]' + bcolors.ENDC
+            print ( t() + ' Configuring DNS resolv.conf file.. ',
+            myfile.write(resolvString) )
+            print ( bcolors.GREEN + '[done]' + bcolors.ENDC )
 
-    print t() + ' Stopping tor service ',
+    print ( t() + ' Stopping tor service ', )
     os.system('sudo systemctl stop tor')
     os.system('sudo fuser -k 9051/tcp > /dev/null 2>&1')
-    print bcolors.GREEN + '[done]' + bcolors.ENDC
-    print t() + ' Starting new tor daemon ',
-    os.system('sudo -u debian-tor tor -f /etc/tor/torghostrc > /dev/null'
-              )
-    print bcolors.GREEN + '[done]' + bcolors.ENDC
-    print t() + ' setting up iptables rules',
+    print ( bcolors.GREEN + '[done]' + bcolors.ENDC )
+    print ( t() + ' Starting new tor daemon ',)
+    os.system('sudo -u debian-tor tor -f /etc/tor/torghostrc > /dev/null') 
+    print ( bcolors.GREEN + '[done]' + bcolors.ENDC )
+    print ( t() + ' setting up iptables rules', )
 
     iptables_rules = \
         """
@@ -151,17 +151,17 @@ def start_torghost():
 	iptables -A OUTPUT -m owner --uid-owner $TOR_UID -j ACCEPT
 	iptables -A OUTPUT -j REJECT
 	""" \
-        % commands.getoutput('id -ur debian-tor')
+        % subprocess.getoutput('id -ur debian-tor')
 
     os.system(iptables_rules)
-    print bcolors.GREEN + '[done]' + bcolors.ENDC
-    print t() + ' Fetching current IP...'
-    print t() + ' CURRENT IP : ' + bcolors.GREEN + ip() + bcolors.ENDC
+    print ( bcolors.GREEN + '[done]' + bcolors.ENDC )
+    print ( t() + ' Fetching current IP...' )
+    print ( t() + ' CURRENT IP : ' + bcolors.GREEN + ip() + bcolors.ENDC )
 
 
 def stop_torghost():
-    print bcolors.RED + t() + 'STOPPING torghost' + bcolors.ENDC
-    print t() + ' Flushing iptables, resetting to default',
+    print ( bcolors.RED + t() + 'STOPPING torghost' + bcolors.ENDC )
+    print ( t() + ' Flushing iptables, resetting to default', )
     os.system('mv /etc/resolv.conf.bak /etc/resolv.conf')
     IpFlush = \
         """
@@ -175,31 +175,31 @@ def stop_torghost():
 	"""
     os.system(IpFlush)
     os.system('sudo fuser -k 9051/tcp > /dev/null 2>&1')
-    print bcolors.GREEN + '[done]' + bcolors.ENDC
-    print t() + ' Restarting Network manager',
+    print ( bcolors.GREEN + '[done]' + bcolors.ENDC )
+    print ( t() + ' Restarting Network manager', )
     os.system('service network-manager restart')
-    print bcolors.GREEN + '[done]' + bcolors.ENDC
-    print t() + ' Fetching current IP...'
+    print ( bcolors.GREEN + '[done]' + bcolors.ENDC )
+    print ( t() + ' Fetching current IP...' )
     time.sleep(3)
-    print t() + ' CURRENT IP : ' + bcolors.GREEN + ip() + bcolors.ENDC
+    print ( t() + ' CURRENT IP : ' + bcolors.GREEN + ip() + bcolors.ENDC )
 
 
 def switch_tor():
-    print t() + ' Please wait...'
+    print ( t() + ' Please wait...' )
     time.sleep(7)
-    print t() + ' Requesting new circuit...',
+    print ( t() + ' Requesting new circuit...', )
     with Controller.from_port(port=9051) as controller:
         controller.authenticate()
         controller.signal(Signal.NEWNYM)
-    print bcolors.GREEN + '[done]' + bcolors.ENDC
-    print t() + ' Fetching current IP...'
-    print t() + ' CURRENT IP : ' + bcolors.GREEN + ip() + bcolors.ENDC
+    print ( bcolors.GREEN + '[done]' + bcolors.ENDC )
+    print ( t() + ' Fetching current IP...' )
+    print ( t() + ' CURRENT IP : ' + bcolors.GREEN + ip() + bcolors.ENDC )
 
 def check_update():
-    print t() + ' Checking for update...'
+    print ( t() + ' Checking for update...' )
     newversion= get(API_DOMAIN+'/latestversion').json()    
     if newversion['version'] != VERSION:
-        print t() +  bcolors.GREEN + ' New update available' + bcolors.ENDC
+        print ( t() +  bcolors.GREEN + ' New update available' + bcolors.ENDC )
         
         yes = {'yes','y', 'ye', ''}
         no = {'no','n'}
@@ -209,11 +209,11 @@ def check_update():
             os.system('cd /tmp && git clone  https://github.com/SusmithKrishnan/torghost')
             os.system('cd /tmp/torghost && sudo ./build.sh')
         elif choice in no:
-            print t() +" Update abotred by user"
+            print ( t() +" Update abotred by user" )
         else:
-            print "Please respond with 'yes' or 'no'"
+            print ( "Please respond with 'yes' or 'no'" )
     else:
-        print t() + " Torghost is up to date!"    
+        print ( t() + " Torghost is up to date!" ) 
 
 
 def main():
@@ -223,7 +223,7 @@ def main():
         usage()
     try:
         (opts, args) = getopt.getopt(sys.argv[1:], 'srxhu', ['start', 'stop', 'switch', 'help', 'update'])
-    except getopt.GetoptError, err:
+    except ( getopt.GetoptError, err):
         usage()
         sys.exit(2)
     for (o, a) in opts:
